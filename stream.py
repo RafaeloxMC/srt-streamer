@@ -25,20 +25,10 @@ VIDEO_FILE = "video.mp4"
 FFMPEG_SETTINGS = {
 
     # Video
-    "video_codec":    "libx264",
-    "preset":         "veryfast",
-    "tune":           "zerolatency",
-    "crf":            "23",
-    "video_bitrate":  "2500k",
-    "bufsize":        "5000k",
-    "pix_fmt":        "yuv420p",
-    "g":              "60",
+    "video_codec":    "copy",
 
     # Audio
-    "audio_codec":    "aac",
-    "audio_bitrate":  "160k",
-    "audio_rate":     "44100",
-    "audio_channels": "2",
+    "audio_codec":    "copy",
 
     # Output
     "format":         "mpegts",
@@ -61,32 +51,42 @@ def check_ffmpeg():
 
 def build_command(stream_url: str) -> list[str]:
     s = FFMPEG_SETTINGS
-    return [
+
+    cmd = [
         "ffmpeg",
         "-re",
         "-stream_loop", "-1",
         "-i", VIDEO_FILE,
 
-        # Video encoding
-        "-c:v",       s["video_codec"],
-        "-preset",    s["preset"],
-        "-tune",      s["tune"],
-        "-crf",       s["crf"],
-        "-maxrate",   s["video_bitrate"],
-        "-bufsize",   s["bufsize"],
-        "-pix_fmt",   s["pix_fmt"],
-        "-g",         s["g"],
-
-        # Audio encoding
-        "-c:a",       s["audio_codec"],
-        "-b:a",       s["audio_bitrate"],
-        "-ar",        s["audio_rate"],
-        "-ac",        s["audio_channels"],
-
-        # Output
-        "-f",         s["format"],
-        stream_url,
+        "-c:v", s["video_codec"],
     ]
+
+    if s["video_codec"] != "copy":
+        cmd.extend([
+            "-preset",    s.get("preset", "ultrafast"),
+            "-tune",      s.get("tune", "zerolatency"),
+            "-crf",       s.get("crf", "23"),
+            "-maxrate",   s.get("video_bitrate", "2500k"),
+            "-bufsize",   s.get("bufsize", "5000k"),
+            "-pix_fmt",   s.get("pix_fmt", "yuv420p"),
+            "-g",         s.get("g", "60"),
+        ])
+
+    cmd.extend(["-c:a", s["audio_codec"]])
+
+    if s["audio_codec"] != "copy":
+        cmd.extend([
+            "-b:a",       s.get("audio_bitrate", "160k"),
+            "-ar",        s.get("audio_rate", "48000"),
+            "-ac",        s.get("audio_channels", "2"),
+        ])
+
+    cmd.extend([
+        "-f", s["format"],
+        stream_url,
+    ])
+
+    return cmd
 
 
 def stream(stream_url: str):
