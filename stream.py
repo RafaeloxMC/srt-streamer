@@ -2,10 +2,15 @@
 Loop video to SRT streaming url infinitely. Video must be called "video.mp4" in same folder or changed in code.
 
 Usage:
-    python stream.py <stream_url>
+    python stream.py [stream_url]
+
+If stream_url is not provided, it will be read from the SRT variable in .env file.
 
 Example:
     python stream.py "srt://localhost:8890?streamid=publish:CHANNEL_NAME:USERNAME:STREAM_KEY&pkt_size=1316"
+    
+    Or create a .env file with:
+    SRT=srt://localhost:8890?streamid=publish:CHANNEL_NAME:USERNAME:STREAM_KEY&pkt_size=1316
 """
 
 import subprocess
@@ -13,6 +18,7 @@ import sys
 import os
 import signal
 import time
+from dotenv import load_dotenv
 
 VIDEO_FILE = "video.mp4"
 
@@ -128,9 +134,17 @@ def stream(stream_url: str):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print(__doc__)
-        sys.exit(1)
-
     check_ffmpeg()
-    stream(sys.argv[1])
+
+    if len(sys.argv) == 2:
+        stream_url = sys.argv[1]
+    else:
+        load_dotenv()
+        stream_url = os.getenv("SRT")
+        if not stream_url:
+            print("ERROR: No stream URL provided.")
+            print("Either pass it as an argument or set SRT in .env file.\n")
+            print(__doc__)
+            sys.exit(1)
+
+    stream(stream_url)
